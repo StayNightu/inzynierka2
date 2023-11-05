@@ -2,10 +2,9 @@ import cv2
 from PIL import Image, ImageTk
 from tkinter import filedialog
 import tkinter as tk
-#from BBox import BBox
 
 class VideoPlayer:
-    def __init__(self, window, canvas, callback):
+    def __init__(self, window, canvas, callback=None):
         self.window = window
         self.canvas = canvas
         self.video_source = ""
@@ -13,7 +12,6 @@ class VideoPlayer:
         self.is_playing = False
         self.callback = callback
         self.image_on_canvas = None
-        #self.bbox_drawer = BBox(self.canvas)
 
     def load_video(self):
         self.video_source = filedialog.askopenfilename(filetypes=[("Pliki MP4", "*.mp4"), ("Wszystkie pliki", "*.*")])

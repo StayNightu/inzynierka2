@@ -1,6 +1,5 @@
 import tkinter as tk
 
-#from BBox import BBox
 from Video import VideoPlayer
 from CSV_plik import CSVDisplay
 
@@ -10,7 +9,6 @@ class Main:
         self.window.title(window_title)
 
         self.btn_clicked = False
-        self.bbox_drawer = None  # Dodane
         self.editing_mode = False  # Dodane
 
         self.canvas = tk.Canvas(window)
@@ -20,9 +18,6 @@ class Main:
 
         self.buttons_frame = tk.Frame(window)
         self.buttons_frame.pack(pady=20)
-
-        self.btn_show_csv = tk.Button(self.buttons_frame, text="Pokaż wartości CSV", width=20, command=self.show_csv)
-        self.btn_show_csv.grid(row=0, column=0, padx=5, pady=10)
 
         self.btn_select = tk.Button(self.buttons_frame, text="Wybierz wideo", width=15, command=self.video_manager.load_video)
         self.btn_select.grid(row=0, column=1, padx=5, pady=10)
@@ -42,17 +37,7 @@ class Main:
         self.btn_replay = tk.Button(self.buttons_frame, text="Odtwórz od nowa", width=15, command=self.video_manager.replay_video, state=tk.DISABLED)
         self.btn_replay.grid(row=0, column=6, padx=5, pady=10)
 
-        self.btn_add_bbox = tk.Button(self.buttons_frame, text="Dodaj BBox", width=15, command=self.add_bbox,
-                                      state=tk.DISABLED)
-        self.btn_add_bbox.grid(row=1, column=0, padx=5, pady=10)
-
-        self.btn_edit_bbox = tk.Button(self.buttons_frame, text="Edytuj BBox", width=15, command=self.edit_bbox,
-                                       state=tk.DISABLED)
-        self.btn_edit_bbox.grid(row=1, column=1, padx=5, pady=10)
-
-        self.btn_delete_bbox = tk.Button(self.buttons_frame, text="Usuń BBox", width=15, command=self.delete_bbox,
-                                         state=tk.DISABLED)
-        self.btn_delete_bbox.grid(row=1, column=2, padx=5, pady=10)
+        self.show_csv()  # Display the CSV file in the lower-left corner
 
     def on_select_video(self):
         if not self.btn_clicked:
@@ -64,38 +49,15 @@ class Main:
         self.btn_clicked = False
 
     def show_csv(self):
-        csv_display = CSVDisplay()
+        csv_display = CSVDisplay(self.window, "1.csv")  # Pass the root window and CSV file path
         csv_display.run()
 
-    def add_bbox(self):
-        if self.video_manager.is_video_opened():
-            if self.bbox_drawer:
-                self.bbox_drawer.clear()
-                self.bbox_drawer.unbind()
-            self.bbox_drawer = BBox(self.canvas)
-            self.bbox_drawer.edit_mode = False
-
-    def edit_bbox(self):
-        if self.video_manager.is_video_opened():
-            if self.bbox_drawer:
-                self.bbox_drawer.edit_mode = True
-
-    def delete_bbox(self):
-        if self.video_manager.is_video_opened():
-            # Usuń aktualnie narysowany bounding box
-            if hasattr(self, 'bbox_drawer') and self.bbox_drawer:
-                self.bbox_drawer.clear()
-                self.bbox_drawer = None
-                self.editing_mode = False
-
     def update_buttons_state(self):
-        # Jeśli wideo jest załadowane
         if self.video_manager.is_video_opened():
             self.btn_play.config(state=tk.NORMAL)
             self.btn_stop.config(state=tk.NORMAL)
             self.btn_replay.config(state=tk.NORMAL)
 
-            # Enable next and previous frame buttons only when the video is not playing
             if not self.video_manager.is_playing:
                 self.btn_next_frame.config(state=tk.NORMAL)
                 self.btn_prev_frame.config(state=tk.NORMAL)
@@ -108,26 +70,15 @@ class Main:
             self.btn_next_frame.config(state=tk.DISABLED)
             self.btn_prev_frame.config(state=tk.DISABLED)
             self.btn_replay.config(state=tk.DISABLED)
-        if self.video_manager.is_video_opened():
-            self.btn_add_bbox.config(state=tk.NORMAL)
-            self.btn_edit_bbox.config(
-                state=tk.NORMAL)  # Możesz też ustawić to na DISABLED, jeśli nie chcesz na razie edytować bounding boxów
-            self.btn_delete_bbox.config(state=tk.NORMAL)
-        else:
-            self.btn_add_bbox.config(state=tk.DISABLED)
-            self.btn_edit_bbox.config(state=tk.DISABLED)
-            self.btn_delete_bbox.config(state=tk.DISABLED)
 
-
-
-def toggle_fullscreen(event = None):
-    state = not root.attributes('-fullscreen')  # Pobieranie aktualnego stanu i zmiana go na przeciwny
+def toggle_fullscreen(event=None):
+    state = not root.attributes('-fullscreen')
     root.attributes('-fullscreen', state)
     return "break"
 
 if __name__ == "__main__":
     root = tk.Tk()
     root.attributes('-fullscreen', True)
-    root.bind("<Escape>", toggle_fullscreen)  # Bindowanie klawisza Escape do funkcji toggle_fullscreen
+    root.bind("<Escape>", toggle_fullscreen)
     App = Main(root, "Odtwarzacz wideo")
     root.mainloop()
