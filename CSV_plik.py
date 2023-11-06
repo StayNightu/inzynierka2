@@ -5,7 +5,7 @@ from Video import VideoPlayer
 class CSVDisplay:
     def __init__(self, root, csv_file_path="1.csv"):
         self.root = root
-        self.root.title("Video Player with CSV Display")
+        self.root.title("Odtwarzacz")
         self.root.attributes('-fullscreen', True)
         self.root.bind("<Escape>", self.toggle_fullscreen)
         self.csv_file_path = csv_file_path

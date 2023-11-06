@@ -1,8 +1,6 @@
 import cv2
 from PIL import Image, ImageTk
-from tkinter import filedialog
 import tkinter as tk
-
 class VideoPlayer:
     def __init__(self, window, canvas, callback=None):
         self.window = window
@@ -12,12 +10,12 @@ class VideoPlayer:
         self.is_playing = False
         self.callback = callback
         self.image_on_canvas = None
+        self.bbox_coords = {}
+
+    def set_video(self, video_path):
+        self.video_source = video_path
 
     def load_video(self):
-        self.video_source = filedialog.askopenfilename(filetypes=[("Pliki MP4", "*.mp4"), ("Wszystkie pliki", "*.*")])
-        if not self.video_source:
-            return
-
         if self.vid:
             self.vid.release()
 
@@ -29,10 +27,10 @@ class VideoPlayer:
         self.callback()
 
     def play_video(self):
-        if self.is_playing:  # Prevents playing if the video is already playing
+        if self.is_playing:
             return
         self.is_playing = True
-        self.callback()  # Update buttons' state when the video starts playing
+        self.callback()
         self.update()
 
     def stop_video(self):
@@ -48,11 +46,8 @@ class VideoPlayer:
 
     def prev_frame(self):
         if self.vid:
-            # Pobierz aktualny indeks klatki
             frame_pos = self.vid.get(cv2.CAP_PROP_POS_FRAMES)
-            # Przesuń wideo o dwie klatki do tyłu
             self.vid.set(cv2.CAP_PROP_POS_FRAMES, frame_pos - 2)
-            # Wyświetl poprzednią klatkę
             self.next_frame()
 
     def replay_video(self):
@@ -66,7 +61,7 @@ class VideoPlayer:
             if ret:
                 self.photo = ImageTk.PhotoImage(image=Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)))
                 if self.image_on_canvas:
-                    self.canvas.itemconfig(self.image_on_canvas, image=self.photo)  # aktualizowanie obrazu
+                    self.canvas.itemconfig(self.image_on_canvas, image=self.photo)
                 else:
                     self.image_on_canvas = self.canvas.create_image(0, 0, image=self.photo, anchor=tk.NW)
 
@@ -76,3 +71,28 @@ class VideoPlayer:
 
     def is_video_opened(self):
         return self.vid is not None and self.vid.isOpened()
+
+    def export_with_bboxes(self, output_folder="output_frames"):
+        import os
+
+        # Create the output folder if it doesn't exist
+        if not os.path.exists(output_folder):
+            os.makedirs(output_folder)
+
+        frame_count = 0
+        while True:
+            ret, frame = self.vid.read()
+            if not ret:
+                break
+
+            # Draw each bbox on the frame
+            for _, coords in self.bbox_coords.items():
+                x1, y1, x2, y2 = map(int, coords)
+                cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 0, 255), 2)
+
+            # Save the frame as an image
+            frame_path = os.path.join(output_folder, f"frame_{frame_count}.jpg")
+            cv2.imwrite(frame_path, frame)
+            frame_count += 1
+
+        print(f"Frames saved in {output_folder}")
