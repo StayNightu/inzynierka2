@@ -37,24 +37,6 @@ class VideoPlayer:
         self.is_playing = False
         self.callback()
 
-    def next_frame(self):
-        if self.vid:
-            ret, frame = self.vid.read()
-            if ret:
-                self.photo = ImageTk.PhotoImage(image=Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)))
-                self.canvas.create_image(0, 0, image=self.photo, anchor=tk.NW)
-
-    def prev_frame(self):
-        if self.vid:
-            frame_pos = self.vid.get(cv2.CAP_PROP_POS_FRAMES)
-            self.vid.set(cv2.CAP_PROP_POS_FRAMES, frame_pos - 2)
-            self.next_frame()
-
-    def replay_video(self):
-        if self.vid:
-            self.vid.set(cv2.CAP_PROP_POS_FRAMES, 0)
-            self.play_video()
-
     def update(self):
         if self.is_playing:
             ret, frame = self.vid.read()

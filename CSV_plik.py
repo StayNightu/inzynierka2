@@ -1,35 +1,27 @@
 import csv
 import tkinter as tk
-from Video import VideoPlayer
+from tkinter import Toplevel
 
 class CSVDisplay:
-    def __init__(self, root, csv_file_path="1.csv"):
-        self.root = root
-        self.root.title("Odtwarzacz")
-        self.root.attributes('-fullscreen', True)
-        self.root.bind("<Escape>", self.toggle_fullscreen)
+    def __init__(self, main_instance, csv_file_path="1.csv"):
+        self.main_instance = main_instance
         self.csv_file_path = csv_file_path
+        self.current_data = None  # Inicjalizuj current_data, jeśli tego jeszcze nie zrobiłeś
 
-        self.canvas = tk.Canvas(root)
+        self.canvas = tk.Canvas(main_instance.root)  # Użyj głównego okna aplikacji
         self.canvas.pack(side=tk.LEFT, padx=20, pady=20, fill=tk.BOTH, expand=True)
 
-        self.video_manager = VideoPlayer(root, self.canvas)
-
-        self.csv_frame = tk.Frame(root)
+        self.csv_frame = tk.Frame(main_instance.root)  # Użyj głównego okna aplikacji
         self.csv_frame.pack(side=tk.RIGHT, padx=20, pady=20, fill=tk.BOTH, expand=True)
 
         self.listbox = tk.Listbox(self.csv_frame)
         self.listbox.pack(pady=15, padx=15, expand=True, fill=tk.BOTH)
 
-        self.current_data = None
-        self.keep_checking = True
-        self.after_id = None
-
         self.load_csv()
-        self.check_for_updates()
-
-        # Bind window closing to stop checking and close
-        root.protocol("WM_DELETE_WINDOW", self.stop_checking_and_close)
+        self.keep_checking = True
+        self.check_interval = 1000
+        self.load_csv()
+        self.start_checking_for_updates()
 
     def load_csv(self):
         data = []
@@ -44,22 +36,21 @@ class CSVDisplay:
                 self.listbox.insert(tk.END, line)
             self.current_data = data
 
+    def start_checking_for_updates(self):
+        if self.keep_checking:
+            self.check_for_updates()
+            self.main_instance.root.after(self.check_interval, self.start_checking_for_updates)
+
     def check_for_updates(self):
         if self.keep_checking:
             self.load_csv()
-            # Check for updates every 1000 ms (1 second)
-            self.after_id = self.root.after(1000, self.check_for_updates)
+            self.after_id = self.main_instance.root.after(1000, self.check_for_updates)
 
     def stop_checking_and_close(self):
         self.keep_checking = False
         if self.after_id:
-            self.root.after_cancel(self.after_id)  # Cancel the after function
-        self.root.destroy()
+            self.main_instance.after_cancel(self.after_id)
+        self.main_instance.root.destroy()
 
     def run(self):
-        self.root.mainloop()
-
-    def toggle_fullscreen(self, event=None):
-        state = not self.root.attributes('-fullscreen')
-        self.root.attributes('-fullscreen', state)
-        return "break"
+        self.main_instance()
