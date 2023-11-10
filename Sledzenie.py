@@ -77,9 +77,7 @@ class Sledzenie:
         return img
 
     def process_video(self):
-        self.out = cv2.VideoWriter('Output.avi', cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'), 10,
-                                   (self.frame_width, self.frame_height))
-
+        self.out = cv2.VideoWriter('Output.avi', cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'), 10, (self.frame_width, self.frame_height))
         prev_frame = None
         while True:
             xywh_bboxs = []
@@ -125,6 +123,7 @@ class Sledzenie:
                 break
         self.out.release()
         self.cap.release()
+
     def run(self):
         self.set_video(self.video_source)
         self.process_video()
