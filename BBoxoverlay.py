@@ -63,6 +63,9 @@ class BBoxOverlay:
                 self.draw_bbox(frame, bbox)
         return frame
 
+    def get_bbox_data_for_current_frame(self):
+        return self.bbox_data.get(self.current_frame_number, [])
+
     def select_bbox(self, x, y):
         for bbox in self.bbox_data.get(self.current_frame_number, []):
             if self.is_point_inside_bbox(x, y, bbox):
@@ -113,9 +116,27 @@ class BBoxOverlay:
                 self.original_bbox = bbox.copy()
                 self.start_resize_point = (x, y)
                 self.resizing_edge = self.detect_resizing_edge(x, y, self.resizing_bbox)
+                if self.resizing_edge:
+                    self.set_cursor_according_to_edge(self.resizing_edge)
+                else:
+                    self.dragging = True
                 break
+
             frame = self.get_frame()
             self.main.update_canvas(frame)
+
+    def set_cursor_according_to_edge(self, edge):
+        cursor_shape = {
+            "top-left": "top_left_corner",
+            "top-right": "top_right_corner",
+            "bottom-left": "bottom_left_corner",
+            "bottom-right": "bottom_right_corner",
+            "left": "sb_h_double_arrow",
+            "right": "sb_h_double_arrow",
+            "top": "sb_v_double_arrow",
+            "bottom": "sb_v_double_arrow"
+        }
+        self.main.canvas.config(cursor=cursor_shape.get(edge, "arrow"))
 
     def detect_resizing_edge(self, x, y, bbox):
         edge_threshold = 10
@@ -139,45 +160,50 @@ class BBoxOverlay:
             return "right"
 
     def resize_bbox(self, x, y):
-        if not self.resizing_bbox or not self.resizing_edge:
+        if not self.resizing_bbox:
             return
 
         dx, dy = x - self.start_resize_point[0], y - self.start_resize_point[1]
 
-        # Zaktualizuj bbox w zależności od przeciąganej krawędzi
-        if self.resizing_edge == "top-left":
-            self.resizing_bbox['x1'] = self.original_bbox['x1'] + dx
-            self.resizing_bbox['y1'] = self.original_bbox['y1'] + dy
-            self.resizing_bbox['width'] = self.original_bbox['width'] - dx
-            self.resizing_bbox['height'] = self.original_bbox['height'] - dy
-        elif self.resizing_edge == "top-right":
-            self.resizing_bbox['y1'] = self.original_bbox['y1'] + dy
-            self.resizing_bbox['width'] = self.original_bbox['width'] + dx
-            self.resizing_bbox['height'] = self.original_bbox['height'] - dy
-        elif self.resizing_edge == "bottom-left":
-            self.resizing_bbox['x1'] = self.original_bbox['x1'] + dx
-            self.resizing_bbox['width'] = self.original_bbox['width'] - dx
-            self.resizing_bbox['height'] = self.original_bbox['height'] + dy
-        elif self.resizing_edge == "bottom-right":
-            self.resizing_bbox['width'] = self.original_bbox['width'] + dx
-            self.resizing_bbox['height'] = self.original_bbox['height'] + dy
-        elif self.resizing_edge == "left":
-            self.resizing_bbox['x1'] = self.original_bbox['x1'] + dx
-            self.resizing_bbox['width'] = self.original_bbox['width'] - dx
-        elif self.resizing_edge == "right":
-            self.resizing_bbox['width'] = self.original_bbox['width'] + dx
-        elif self.resizing_edge == "top":
-            self.resizing_bbox['y1'] = self.original_bbox['y1'] + dy
-            self.resizing_bbox['height'] = self.original_bbox['height'] - dy
-        elif self.resizing_edge == "bottom":
-            self.resizing_bbox['height'] = self.original_bbox['height'] + dy
-        self.resizing_bbox['width'] = max(self.resizing_bbox['width'], 1)
-        self.resizing_bbox['height'] = max(self.resizing_bbox['height'], 1)
+        if self.dragging:
+            self.move_bbox(dx, dy)
+            self.start_resize_point = (x, y)
+        else:
+            if self.resizing_edge == "top-left":
+                self.resizing_bbox['x1'] = self.original_bbox['x1'] + dx
+                self.resizing_bbox['y1'] = self.original_bbox['y1'] + dy
+                self.resizing_bbox['width'] = self.original_bbox['width'] - dx
+                self.resizing_bbox['height'] = self.original_bbox['height'] - dy
+            elif self.resizing_edge == "top-right":
+                self.resizing_bbox['y1'] = self.original_bbox['y1'] + dy
+                self.resizing_bbox['width'] = self.original_bbox['width'] + dx
+                self.resizing_bbox['height'] = self.original_bbox['height'] - dy
+            elif self.resizing_edge == "bottom-left":
+                self.resizing_bbox['x1'] = self.original_bbox['x1'] + dx
+                self.resizing_bbox['width'] = self.original_bbox['width'] - dx
+                self.resizing_bbox['height'] = self.original_bbox['height'] + dy
+            elif self.resizing_edge == "bottom-right":
+                self.resizing_bbox['width'] = self.original_bbox['width'] + dx
+                self.resizing_bbox['height'] = self.original_bbox['height'] + dy
+            elif self.resizing_edge == "left":
+                self.resizing_bbox['x1'] = self.original_bbox['x1'] + dx
+                self.resizing_bbox['width'] = self.original_bbox['width'] - dx
+            elif self.resizing_edge == "right":
+                self.resizing_bbox['width'] = self.original_bbox['width'] + dx
+            elif self.resizing_edge == "top":
+                self.resizing_bbox['y1'] = self.original_bbox['y1'] + dy
+                self.resizing_bbox['height'] = self.original_bbox['height'] - dy
+            elif self.resizing_edge == "bottom":
+                self.resizing_bbox['height'] = self.original_bbox['height'] + dy
+            self.resizing_bbox['width'] = max(self.resizing_bbox['width'], 1)
+            self.resizing_bbox['height'] = max(self.resizing_bbox['height'], 1)
 
     def finish_resizing_bbox(self):
         self.resizing_bbox = None
         self.original_bbox = None
         self.start_resize_point = None
+        self.dragging = False
+        self.main.canvas.config(cursor="arrow")
         frame = self.get_frame()
         self.main.update_canvas(frame)
 
@@ -202,6 +228,11 @@ class BBoxOverlay:
     def update_bbox_data(self):
         self.bbox_data = self.load_bbox_data()
 
+    def move_bbox(self, dx, dy):
+        if self.selected_bbox:
+            self.selected_bbox['x1'] += dx
+            self.selected_bbox['y1'] += dy
+
     def save_video_with_bbox(self, output_path):
         if not self.cap.isOpened():
             print("Nie można otworzyć pliku wideo")
@@ -209,13 +240,11 @@ class BBoxOverlay:
 
         width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        fps = self.cap.get(cv2.CAP_PROP_FPS)  # Pobierz FPS z oryginalnego wideo
-
-        # Utwórz obiekt VideoWriter do zapisu wideo
+        fps = self.cap.get(cv2.CAP_PROP_FPS)
         fourcc = cv2.VideoWriter_fourcc(*'XVID')
         out = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
 
-        self.cap.set(cv2.CAP_PROP_POS_FRAMES, 0)  # Zresetuj wideo do początkowej klatki
+        self.cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
         self.current_frame_number = 0
 
         while True:
